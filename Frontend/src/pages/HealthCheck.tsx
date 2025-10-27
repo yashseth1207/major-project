@@ -54,10 +54,20 @@ const HealthCheck = () => {
   };
 
   const handleAnalyze = async () => {
+    // Validation
     if (!symptoms.trim()) {
       toast({
         title: "Please describe your symptoms",
         description: "Enter your symptoms to get AI health guidance",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!age.trim() || !gender.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide your age and gender",
         variant: "destructive",
       });
       return;
@@ -110,7 +120,7 @@ const HealthCheck = () => {
 
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Form */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <Card className="shadow-elegant">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -129,9 +139,11 @@ const HealthCheck = () => {
                       <Label htmlFor="age">Age</Label>
                       <Input
                         id="age"
+                        type="number"
                         placeholder="Your age"
                         value={age}
                         onChange={(e) => setAge(e.target.value)}
+                        disabled={isAnalyzing}
                       />
                     </div>
                     <div className="space-y-2">
@@ -160,6 +172,7 @@ const HealthCheck = () => {
                       className="min-h-[120px]"
                       value={symptoms}
                       onChange={(e) => setSymptoms(e.target.value)}
+                      disabled={isAnalyzing}
                     />
                   </div>
 
@@ -197,6 +210,58 @@ const HealthCheck = () => {
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* Error Message */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Analysis Results */}
+              {analysisResult && (
+                <Card className="shadow-elegant">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        Your Health Analysis
+                      </CardTitle>
+                      <Badge className={getSeverityColor(analysisResult.severity)}>
+                        {analysisResult.severity.toUpperCase()} SEVERITY
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="prose prose-sm max-w-none">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                        {analysisResult.analysis}
+                      </div>
+                    </div>
+                    
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        {analysisResult.disclaimer}
+                      </AlertDescription>
+                    </Alert>
+
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        setAnalysisResult(null);
+                        setSymptoms("");
+                        setAge("");
+                        setGender("");
+                      }}
+                    >
+                      New Analysis
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Sidebar */}
