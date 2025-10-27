@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Utensils, Leaf, Apple, Loader2 } from "lucide-react";
+import { ArrowLeft, Utensils, Leaf, Apple } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const DietPlan = () => {
@@ -31,9 +31,10 @@ const DietPlan = () => {
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [condition, setCondition] = useState("");
+  const [dietType, setDietType] = useState("");
   const [allergies, setAllergies] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [dietPlan, setDietPlan] = useState<string | null>(null); // ✅ AI diet plan output
+  const [dietPlan, setDietPlan] = useState<string | null>(null);
 
   const conditions = [
     "Diabetes",
@@ -43,10 +44,8 @@ const DietPlan = () => {
     "Obesity",
     "Digestive Issues",
     "General Health",
-    "General Health",
   ];
 
-  const commonAllergies = ["Nuts", "Dairy", "Gluten", "Eggs", "Seafood", "Soy"];
   const commonAllergies = ["Nuts", "Dairy", "Gluten", "Eggs", "Seafood", "Soy"];
 
   const handleAllergyChange = (allergy: string, checked: boolean) => {
@@ -54,12 +53,8 @@ const DietPlan = () => {
       setAllergies([...allergies, allergy]);
     } else {
       setAllergies(allergies.filter((a) => a !== allergy));
-      setAllergies(allergies.filter((a) => a !== allergy));
     }
   };
-
-  const [dietType, setDietType] = useState("");
-
 
   const handleGeneratePlan = async () => {
     if (!age || !weight || !height || !condition || !dietType) {
@@ -74,21 +69,30 @@ const DietPlan = () => {
 
     setIsGenerating(true);
 
-    // Simulate AI plan generation - would require Supabase backend
-    setTimeout(() => {
-      setIsGenerating(false);
-      toast({
-        title: "Diet Plan Ready!",
-        description:
-          "Connect to Supabase to enable full AI diet plan generation",
-      });
+    try {
+      // Simulate AI plan generation
+      setTimeout(() => {
+        setDietPlan(
+          `Here’s your sample AI diet plan:
+
+🌅 **Breakfast:** Oats with milk and fruits  
+🌞 **Lunch:** Rice, dal, mixed veggies, and salad  
+🌙 **Dinner:** Roti, paneer/tofu, and curd  
+💧 Stay hydrated with 2-3 liters of water daily`
+        );
+        toast({
+          title: "Diet Plan Ready!",
+          description:
+            "Connect to Supabase to enable full AI diet plan generation.",
+        });
+        setIsGenerating(false);
+      }, 2000);
     } catch (err) {
       toast({
         title: "Failed to generate diet plan",
         description: "Please try again later",
         variant: "destructive",
       });
-    } finally {
       setIsGenerating(false);
     }
   };
@@ -100,9 +104,6 @@ const DietPlan = () => {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="ghost"
-              size="sm"
             <Button
               variant="ghost"
               size="sm"
@@ -118,7 +119,9 @@ const DietPlan = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary-glow rounded-full mb-6">
               <Utensils className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-foreground mb-4">Personalized Diet Plan</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">
+              Personalized Diet Plan
+            </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Get AI-powered nutrition plans using locally available, affordable
               foods
@@ -139,21 +142,38 @@ const DietPlan = () => {
                     that fits your lifestyle and health needs.
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="age">Age *</Label>
-                      <Input id="age" placeholder="30" value={age} onChange={(e) => setAge(e.target.value)} />
+                      <Input
+                        id="age"
+                        placeholder="30"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="weight">Weight (kg) *</Label>
-                      <Input id="weight" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} />
+                      <Input
+                        id="weight"
+                        placeholder="70"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="height">Height (cm) *</Label>
-                      <Input id="height" placeholder="170" value={height} onChange={(e) => setHeight(e.target.value)} />
+                      <Input
+                        id="height"
+                        placeholder="170"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                      />
                     </div>
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="dietType">Diet Type *</Label>
                     <Select
@@ -193,10 +213,7 @@ const DietPlan = () => {
                     <Label>Food Allergies (optional)</Label>
                     <div className="grid grid-cols-3 gap-3">
                       {commonAllergies.map((allergy) => (
-                        <div
-                          key={allergy}
-                          className="flex items-center space-x-2"
-                        >
+                        <div key={allergy} className="flex items-center space-x-2">
                           <Checkbox
                             id={allergy}
                             checked={allergies.includes(allergy)}
@@ -213,7 +230,6 @@ const DietPlan = () => {
                   </div>
 
                   <Button
-                  <Button
                     onClick={handleGeneratePlan}
                     disabled={isGenerating}
                     className="w-full bg-gradient-primary hover:opacity-90 text-white shadow-glow"
@@ -224,20 +240,22 @@ const DietPlan = () => {
                       : "Generate My Diet Plan"}
                   </Button>
 
-                  {/* ✅ Display AI Diet Plan */}
                   {dietPlan && (
                     <Card className="mt-6 p-4 shadow-md rounded-2xl bg-white">
-                      <h2 className="text-xl font-semibold mb-3">🍽️ Your Personalized Diet Plan</h2>
-                      <div className="whitespace-pre-wrap leading-relaxed text-gray-800">{dietPlan}</div>
+                      <h2 className="text-xl font-semibold mb-3">
+                        🍽️ Your Personalized Diet Plan
+                      </h2>
+                      <div className="whitespace-pre-wrap leading-relaxed text-gray-800">
+                        {dietPlan}
+                      </div>
                     </Card>
                   )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Sidebar (optional tips, local foods) */}
+            {/* Sidebar */}
             <div className="space-y-6">
-              {/* Local Foods */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -257,7 +275,6 @@ const DietPlan = () => {
                 </CardContent>
               </Card>
 
-              {/* Nutrition Tips */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -283,12 +300,9 @@ const DietPlan = () => {
                 </CardContent>
               </Card>
 
-              {/* Sample Meal */}
               <Card className="bg-gradient-subtle">
                 <CardHeader>
-                  <CardTitle className="text-lg">
-                    Sample Farmer's Meal
-                  </CardTitle>
+                  <CardTitle className="text-lg">Sample Farmer's Meal</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -316,4 +330,3 @@ const DietPlan = () => {
 };
 
 export default DietPlan;
-
