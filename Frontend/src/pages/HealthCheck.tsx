@@ -2,13 +2,32 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Heart, AlertTriangle, CheckCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Heart,
+  AlertTriangle,
+  CheckCircle,
+  FileUp,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const HealthCheck = () => {
   const navigate = useNavigate();
@@ -16,7 +35,23 @@ const HealthCheck = () => {
   const [symptoms, setSymptoms] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
+  const [reportFile, setReportFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a PDF, JPG, or PNG report.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setReportFile(file);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (!symptoms.trim()) {
@@ -29,13 +64,15 @@ const HealthCheck = () => {
     }
 
     setIsAnalyzing(true);
-    
-    // Simulate AI analysis - would require Supabase backend
+
+    // Simulate AI analysis - replace with actual backend call later
     setTimeout(() => {
       setIsAnalyzing(false);
       toast({
         title: "Analysis Complete",
-        description: "Connect to Supabase to enable full AI health analysis",
+        description: reportFile
+          ? `Uploaded report: ${reportFile.name}`
+          : "Connect to Supabase to enable full AI health analysis",
       });
     }, 2000);
   };
@@ -47,9 +84,9 @@ const HealthCheck = () => {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate("/")}
               className="text-muted-foreground hover:text-foreground"
             >
@@ -66,7 +103,8 @@ const HealthCheck = () => {
               Health Self-Check
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Describe your symptoms and get AI-powered health guidance tailored for farmers
+              Describe your symptoms and get AI-powered health guidance tailored
+              for farmers
             </p>
           </div>
 
@@ -80,9 +118,11 @@ const HealthCheck = () => {
                     Tell us about your symptoms
                   </CardTitle>
                   <CardDescription>
-                    Describe how you're feeling using simple, everyday language. Include when symptoms started and how severe they are.
+                    Describe how you're feeling using simple, everyday language.
+                    Include when symptoms started and how severe they are.
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -96,15 +136,22 @@ const HealthCheck = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="gender">Gender</Label>
-                      <Input
-                        id="gender"
-                        placeholder="Male/Female/Other"
+                      <Select
+                        onValueChange={(value) => setGender(value)}
                         value={gender}
-                        onChange={(e) => setGender(e.target.value)}
-                      />
+                      >
+                        <SelectTrigger id="gender">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="symptoms">Describe your symptoms</Label>
                     <Textarea
@@ -116,13 +163,37 @@ const HealthCheck = () => {
                     />
                   </div>
 
-                  <Button 
+                  {/* 📎 Report Upload Section */}
+                  <div className="space-y-2">
+                    <Label htmlFor="report">
+                      Upload Medical Report (optional)
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        id="report"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileChange}
+                      />
+                      <FileUp className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    {reportFile && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Uploaded:{" "}
+                        <span className="font-medium">{reportFile.name}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}
                     className="w-full bg-gradient-primary hover:opacity-90 text-white shadow-glow"
                     size="lg"
                   >
-                    {isAnalyzing ? "Analyzing symptoms..." : "Get AI Health Guidance"}
+                    {isAnalyzing
+                      ? "Analyzing symptoms..."
+                      : "Get AI Health Guidance"}
                   </Button>
                 </CardContent>
               </Card>
@@ -167,7 +238,8 @@ const HealthCheck = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-yellow-700">
-                    If you have severe chest pain, difficulty breathing, or other emergency symptoms, seek immediate medical attention.
+                    If you have severe chest pain, difficulty breathing, or
+                    other emergency symptoms, seek immediate medical attention.
                   </p>
                 </CardContent>
               </Card>
@@ -175,7 +247,9 @@ const HealthCheck = () => {
               {/* Common Conditions */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Common Farmer Health Issues</CardTitle>
+                  <CardTitle className="text-lg">
+                    Common Farmer Health Issues
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">

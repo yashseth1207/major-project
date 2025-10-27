@@ -172,15 +172,6 @@ const CropDetection = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Your Location</Label>
-                      <Input
-                        id="location"
-                        placeholder="City, State"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                      />
-                    </div>
                   </div>
 
                   <Button 
