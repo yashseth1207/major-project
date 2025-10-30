@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,10 @@ import { Leaf, User, Mail, Lock, MapPin, Eye, EyeOff } from "lucide-react";
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -41,10 +45,66 @@ const Register = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Registration logic will be implemented after Supabase connection
-    console.log("Registration attempt:", formData);
+
+    // basic client-side validation
+    if (formData.password !== formData.confirmPassword) {
+      setMessageType('error');
+      setMessage('Passwords do not match');
+      return;
+    }
+
+    if (!formData.agreeTerms || !formData.agreePrivacy) {
+      setMessageType('error');
+      setMessage('You must agree to the Terms and Privacy Policy to continue');
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/api/user/signup`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          farmLocation: formData.farmLocation,
+          farmSize: formData.farmSize,
+          primaryCrops: formData.primaryCrops,
+          agreeTerms: formData.agreeTerms,
+          agreePrivacy: formData.agreePrivacy
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessageType('success');
+        setMessage(data.msg || 'Registration successful! Redirecting...');
+        // optionally clear sensitive fields
+        setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+        setTimeout(() => navigate('/signin'), 1500);
+      } else {
+        // show server-provided message if available
+        const serverMsg = data?.msg || data?.message || data?.error || 'Registration failed';
+        setMessageType('error');
+        setMessage(serverMsg as string);
+      }
+    } catch (err: any) {
+      setMessageType('error');
+      setMessage(err?.message || 'Network error while registering');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,11 +126,17 @@ const Register = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-                  <Alert>
-                    <AlertDescription>
-                      User registration requires Supabase connection. Connect Supabase to enable account creation.
-                    </AlertDescription>
-                  </Alert>
+                  {message ? (
+                    <Alert className={messageType === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                      <AlertDescription>{message}</AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert>
+                      <AlertDescription>
+                        Enter your details to create an account. Accounts are stored securely on the server.
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}

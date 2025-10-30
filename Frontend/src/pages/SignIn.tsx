@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
 
   useEffect(() => {
     document.title = "Sign In - Agri-Health AI Assistant";
@@ -26,10 +30,51 @@ const SignIn = () => {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Authentication logic will be implemented after Supabase connection
-    console.log("Sign in attempt:", { email, password, rememberMe });
+    setMessage(null);
+
+    if (!email || !password) {
+      setMessageType('error');
+      setMessage('Email and password are required');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/api/user/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // backend returns accessToken and user
+        const token = data.accessToken || data.token;
+        if (token) {
+          // store token (short-lived access token)
+          localStorage.setItem('accessToken', token);
+        }
+        setMessageType('success');
+        setMessage(data.msg || 'Signed in successfully');
+        // redirect to dashboard or protected route
+        setTimeout(() => navigate('/dashboard'), 800);
+      } else {
+        const serverMsg = data?.msg || data?.message || data?.error || 'Sign in failed';
+        setMessageType('error');
+        setMessage(serverMsg as string);
+      }
+    } catch (err: any) {
+      setMessageType('error');
+      setMessage(err?.message || 'Network error during sign in');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,11 +96,17 @@ const SignIn = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-                  <Alert>
-                    <AlertDescription>
-                      Authentication requires Supabase connection. Connect Supabase to enable sign-in functionality.
-                    </AlertDescription>
-                  </Alert>
+                  {message ? (
+                    <Alert className={messageType === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                      <AlertDescription>{message}</AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert>
+                      <AlertDescription>
+                        Sign in to access your account. Your credentials are processed securely on the server.
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
@@ -116,8 +167,8 @@ const SignIn = () => {
                       </Link>
                     </div>
 
-                    <Button type="submit" className="w-full" size="lg">
-                      Sign In
+                    <Button type="submit" className="w-full" size="lg" disabled={loading} aria-busy={loading}>
+                      {loading ? 'Signing in…' : 'Sign In'}
                     </Button>
                   </form>
 
