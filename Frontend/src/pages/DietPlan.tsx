@@ -2,10 +2,22 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Utensils, Leaf, Apple } from "lucide-react";
@@ -14,12 +26,15 @@ import { useToast } from "@/hooks/use-toast";
 const DietPlan = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [condition, setCondition] = useState("");
+  const [dietType, setDietType] = useState("");
   const [allergies, setAllergies] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [dietPlan, setDietPlan] = useState<string | null>(null);
 
   const conditions = [
     "Diabetes",
@@ -28,41 +43,58 @@ const DietPlan = () => {
     "Malnutrition",
     "Obesity",
     "Digestive Issues",
-    "General Health"
+    "General Health",
   ];
 
-  const commonAllergies = [
-    "Nuts", "Dairy", "Gluten", "Eggs", "Seafood", "Soy"
-  ];
+  const commonAllergies = ["Nuts", "Dairy", "Gluten", "Eggs", "Seafood", "Soy"];
 
   const handleAllergyChange = (allergy: string, checked: boolean) => {
     if (checked) {
       setAllergies([...allergies, allergy]);
     } else {
-      setAllergies(allergies.filter(a => a !== allergy));
+      setAllergies(allergies.filter((a) => a !== allergy));
     }
   };
 
   const handleGeneratePlan = async () => {
-    if (!age || !weight || !height || !condition) {
+    if (!age || !weight || !height || !condition || !dietType) {
       toast({
         title: "Please fill all required fields",
-        description: "Complete your profile to generate a personalized diet plan",
+        description:
+          "Complete your profile to generate a personalized diet plan",
         variant: "destructive",
       });
       return;
     }
 
     setIsGenerating(true);
-    
-    // Simulate AI plan generation - would require Supabase backend
-    setTimeout(() => {
-      setIsGenerating(false);
+
+    try {
+      // Simulate AI plan generation
+      setTimeout(() => {
+        setDietPlan(
+          `Here’s your sample AI diet plan:
+
+🌅 **Breakfast:** Oats with milk and fruits  
+🌞 **Lunch:** Rice, dal, mixed veggies, and salad  
+🌙 **Dinner:** Roti, paneer/tofu, and curd  
+💧 Stay hydrated with 2-3 liters of water daily`
+        );
+        toast({
+          title: "Diet Plan Ready!",
+          description:
+            "Connect to Supabase to enable full AI diet plan generation.",
+        });
+        setIsGenerating(false);
+      }, 2000);
+    } catch (err) {
       toast({
-        title: "Diet Plan Ready!",
-        description: "Connect to Supabase to enable full AI diet plan generation",
+        title: "Failed to generate diet plan",
+        description: "Please try again later",
+        variant: "destructive",
       });
-    }, 3000);
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -72,9 +104,9 @@ const DietPlan = () => {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate("/")}
               className="text-muted-foreground hover:text-foreground"
             >
@@ -91,7 +123,8 @@ const DietPlan = () => {
               Personalized Diet Plan
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Get AI-powered nutrition plans using locally available, affordable foods
+              Get AI-powered nutrition plans using locally available, affordable
+              foods
             </p>
           </div>
 
@@ -105,9 +138,11 @@ const DietPlan = () => {
                     Your Health Profile
                   </CardTitle>
                   <CardDescription>
-                    Tell us about yourself to create a personalized diet plan that fits your lifestyle and health needs.
+                    Tell us about yourself to create a personalized diet plan
+                    that fits your lifestyle and health needs.
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
@@ -138,7 +173,26 @@ const DietPlan = () => {
                       />
                     </div>
                   </div>
-                  
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dietType">Diet Type *</Label>
+                    <Select
+                      onValueChange={(value) => setDietType(value)}
+                      value={dietType}
+                    >
+                      <SelectTrigger id="dietType">
+                        <SelectValue placeholder="Select your diet preference" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Vegetarian">Vegetarian</SelectItem>
+                        <SelectItem value="Non-Vegetarian">
+                          Non-Vegetarian
+                        </SelectItem>
+                        <SelectItem value="Eggetarian">Eggetarian</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="condition">Health Condition *</Label>
                     <Select value={condition} onValueChange={setCondition}>
@@ -163,7 +217,7 @@ const DietPlan = () => {
                           <Checkbox
                             id={allergy}
                             checked={allergies.includes(allergy)}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               handleAllergyChange(allergy, checked as boolean)
                             }
                           />
@@ -175,21 +229,33 @@ const DietPlan = () => {
                     </div>
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={handleGeneratePlan}
                     disabled={isGenerating}
                     className="w-full bg-gradient-primary hover:opacity-90 text-white shadow-glow"
                     size="lg"
                   >
-                    {isGenerating ? "Creating your diet plan..." : "Generate My Diet Plan"}
+                    {isGenerating
+                      ? "Creating your diet plan..."
+                      : "Generate My Diet Plan"}
                   </Button>
+
+                  {dietPlan && (
+                    <Card className="mt-6 p-4 shadow-md rounded-2xl bg-white">
+                      <h2 className="text-xl font-semibold mb-3">
+                        🍽️ Your Personalized Diet Plan
+                      </h2>
+                      <div className="whitespace-pre-wrap leading-relaxed text-gray-800">
+                        {dietPlan}
+                      </div>
+                    </Card>
+                  )}
                 </CardContent>
               </Card>
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Local Foods */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -209,7 +275,6 @@ const DietPlan = () => {
                 </CardContent>
               </Card>
 
-              {/* Nutrition Tips */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -222,18 +287,19 @@ const DietPlan = () => {
                     • Eat protein-rich foods for muscle recovery after farm work
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    • Include complex carbs for sustained energy throughout the day
+                    • Include complex carbs for sustained energy throughout the
+                    day
                   </p>
                   <p className="text-sm text-muted-foreground">
                     • Stay hydrated with water, buttermilk, or coconut water
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    • Eat seasonal produce for maximum nutrition and affordability
+                    • Eat seasonal produce for maximum nutrition and
+                    affordability
                   </p>
                 </CardContent>
               </Card>
 
-              {/* Sample Meal */}
               <Card className="bg-gradient-subtle">
                 <CardHeader>
                   <CardTitle className="text-lg">Sample Farmer's Meal</CardTitle>
