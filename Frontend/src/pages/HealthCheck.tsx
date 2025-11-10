@@ -9,19 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  Heart,
-  AlertTriangle,
-  CheckCircle,
-  FileUp,
-  AlertCircle,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -29,7 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Heart, AlertTriangle, CheckCircle, Loader2, AlertCircle, Upload, X, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+interface AnalysisResult {
+  analysis: string;
+  severity: string;
+  timestamp: string;
+  disclaimer: string;
+}
 
 const HealthCheck = () => {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ const HealthCheck = () => {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [reportFile, setReportFile] = useState<File | null>(null);
+  const [reportText, setReportText] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
@@ -47,18 +50,103 @@ const HealthCheck = () => {
     disclaimer: string;
   } | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload a PDF, JPG, or PNG report.",
-          variant: "destructive",
-        });
-        return;
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPG, PNG, or PDF file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setReportFile(file);
+    
+    // Convert to base64 for sending to backend
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setReportText(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    toast({
+      title: "Report uploaded",
+      description: `${file.name} uploaded successfully`,
+    });
+  };
+
+  const removeReport = () => {
+    setReportFile(null);
+    setReportText("");
+  };
+
+  const handleAnalyze = async () => {
+    // Validation
+    if (!symptoms.trim()) {
+      toast({
+        title: "Please describe your symptoms",
+        description: "Enter your symptoms to get AI health guidance",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!age.trim() || !gender.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide your age and gender",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError(null);
+    setAnalysisResult(null);
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      
+      const response = await fetch(`${API_URL}/api/health/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          symptoms,
+          age,
+          gender,
+          reportImage: reportText || null,
+          hasReport: !!reportFile,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze symptoms');
       }
-      setReportFile(file);
+
+      const data = await response.json();
+      setAnalysisResult(data);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to analyze symptoms");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -73,33 +161,7 @@ const HealthCheck = () => {
     }
   };
 
-  const handleAnalyze = async () => {
-    setError(null);
-
-    if (!symptoms.trim()) {
-      setError("Please describe your symptoms.");
-      return;
-    }
-
-    if (!age.trim() || !gender.trim()) {
-      setError("Please provide your age and gender.");
-      return;
-    }
-
-    setIsAnalyzing(true);
-
-    // Simulated AI analysis
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      setAnalysisResult({
-        severity: "medium",
-        analysis:
-          "Based on your description, it seems like mild fatigue possibly due to dehydration or overexertion. Ensure rest and hydration.",
-        disclaimer:
-          "This analysis is AI-generated and not a substitute for professional medical advice.",
-      });
-    }, 2000);
-  };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -181,21 +243,62 @@ const HealthCheck = () => {
                     />
                   </div>
 
-                  <div>
-                    <Label>Upload Medical Report (optional)</Label>
-                    <Input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleFileChange}
-                    />
-                    {reportFile && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Uploaded: <span>{reportFile.name}</span>
-                      </p>
+                  {/* Medical Report Upload */}
+                  <div className="space-y-2">
+                    <Label htmlFor="report">Medical Test Report (Optional)</Label>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Upload blood test, X-ray, or other medical reports for more accurate analysis
+                    </div>
+                    
+                    {!reportFile ? (
+                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 hover:border-primary/50 transition-colors">
+                        <input
+                          id="report"
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={handleFileUpload}
+                          disabled={isAnalyzing}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="report"
+                          className="flex flex-col items-center justify-center cursor-pointer"
+                        >
+                          <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+                          <p className="text-sm font-medium text-foreground">
+                            Click to upload report
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            JPG, PNG, or PDF (Max 5MB)
+                          </p>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="border border-muted rounded-lg p-4 flex items-center justify-between bg-muted/20">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-8 w-8 text-primary" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {reportFile.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(reportFile.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeReport}
+                          disabled={isAnalyzing}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
 
-                  <Button
+                  <Button 
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}
                     className="w-full bg-gradient-primary hover:opacity-90 text-white shadow-glow"
@@ -227,9 +330,16 @@ const HealthCheck = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm leading-relaxed text-foreground">
-                      {analysisResult.analysis}
-                    </p>
+                    <div className="prose prose-sm max-w-none">
+                      <div
+  className="prose prose-sm sm:prose-base max-w-none leading-relaxed text-foreground"
+>
+  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+    {analysisResult.analysis.replace(/\n(?!\n)/g, '\n\n')}
+  </ReactMarkdown>
+</div>
+                    </div>
+                    
                     <Alert>
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription className="text-xs">
@@ -245,6 +355,8 @@ const HealthCheck = () => {
                         setSymptoms("");
                         setAge("");
                         setGender("");
+                        setReportFile(null);
+                        setReportText("");
                       }}
                     >
                       New Analysis
